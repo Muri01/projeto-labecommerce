@@ -427,8 +427,9 @@ app.delete("/products/:id", (req: Request, res: Response)=>{
 // ======================= Purchases =======================
 
 //Get All Purchases
-app.get("/purchases", (req: Request, res: Response)=>{
+app.get("/purchases", async(req: Request, res: Response)=>{
     try{
+        const purchases = await db.raw(`SELECT * FROM purchases`)
         res.status(200).send(purchases)
     }catch(error: any){
         console.log(error)
@@ -456,7 +457,7 @@ app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
             throw new Error("Usuario não existe")
         }
 
-        const result = purchases.find((purchase)=> purchase.userId === id)
+        const result = purchases.find((purchase)=> purchase.buyerId === id)
         if(!result){
             throw new Error("Compra não existe")
         }
@@ -478,51 +479,48 @@ app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
 })
 
 // Create Purchase
-app.post("/purchases", (req: Request, res: Response)=>{
+app.post("/purchases", async (req: Request, res: Response)=>{
     try{
-        const userId = req.body.userId
-        const productId = req.body.productId
-        const quantify = req.body.quantity
+        const id = req.body.id
+        const buyerId = req.body.buyer
         const totalPrice = req.body.totalPrice
+        const paid = req.body.paid
 
         //validar body
-        if(typeof userId !== "string"){
-            throw new Error("'userId' deve ser uma string")
+        if(typeof id !== "string"){
+            throw new Error("'id' da compra deve ser uma string")
         }
-        if(typeof productId !== "string"){
-            throw new Error("'productId' deve ser uma string")
-        }
-        if(typeof quantify !== "number"){
-            throw new Error("'quantify' deve ser uma number")
+        if(typeof buyerId !== "string"){
+            throw new Error("'buyerId' deve ser uma string")
         }
         if(typeof totalPrice !== "number"){
             throw new Error("'totalPrice' deve ser uma number")
         }
+        if(typeof paid !== "number"){
+            throw new Error("'paid' deve ser uma number")
+        }
 
-        //EXTRA
-        const resultIdUser = users.find((user)=> user.id === userId)
+        const [resultIdUser] = await db.raw(`
+            SELECT * FROM users
+            WHERE id = "${buyerId}"
+        `)
         if(!resultIdUser){
             throw new Error("id do usuário que fez a compra deve existir no array de usuários cadastrados")
         }
-
-        const resultIdProduct = users.find((user)=> user.id === userId)
-        if(!resultIdProduct){
-            throw new Error("id do produto que fez a compra deve existir no array de produtos cadastrados")
-        }
         
-        const resultPrice = products.find((poduct)=> poduct.id === userId)
-        if(resultPrice){        //posso colocar só no if de baixo com um && antes da primeira comparação e tirar esse if
-            if(resultPrice.price * quantify !== totalPrice){
-                throw new Error("a quantidade e o total da compra devem estar com o cálculo correto")
-            }
-        }
 
+        const newPurchase:TPurchase = {id, buyerId, totalPrice, paid}
+        await db.raw(`
+            INSERT INTO purchases (id, buyer_id, total_price, paid)
+                VALUES(
+                    "${newPurchase.id}",
+                    "${newPurchase.buyerId}",
+                    "${newPurchase.totalPrice}",
+                    "${newPurchase.paid}"
+            )
+        `)
 
-
-        const newPurchase:TPurchase = {userId, productId, quantify, totalPrice}
-        purchases.push(newPurchase)
-
-        res.status(201).send("Carrinho cadastrado com sucesso")
+        res.status(201).send("Compra cadastrada com sucesso")
     }catch(error){
         console.log(error)
 

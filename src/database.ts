@@ -3,7 +3,7 @@ import { CATEGORY, TProduct, TPurchase, TUser } from "./types";
 export const users:TUser[] = [
     {
         id: "u001",
-        name: "user2",
+        name: "user1",
         email: "user1@email.com",
         password: "123456"
     },
@@ -20,30 +20,30 @@ export const products:TProduct[] = [
         id: "p001",
         name: "macarrão",
         price: 10.5,
-        description: "string",
-    imageUrl: "string"
+        description: "CATEGORY.MASSA",
+        imageUrl: ""
     },
     {
         id: "p002",
         name: "arroz",
         price: 3,
-        description: "string",
-        imageUrl: "string"
+        description: "CATEGORY.GRAO",
+        imageUrl: ""
     }
 ]
 
 export const purchases: TPurchase[] = [
     {
-        userId: "c001",
-        productId: "p002",
-        quantify: 5,
-        totalPrice: 15
+        id: "c001",
+        buyerId: "p002",
+        totalPrice: 15,
+        paid: 1,
     },
     {
-        userId: "c002",
-        productId: "p002",
-        quantify: 3,
-        totalPrice: 9
+        id: "c002",
+        buyerId: "p002",
+        totalPrice: 9,
+        paid: 0,
     }
 ]
 
