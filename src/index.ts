@@ -292,12 +292,13 @@ app.get("/products/:id", (req: Request, res: Response)=>{
 })
 
 // Create Product
-app.post("/products", (req: Request, res: Response)=>{
+app.post("/products",async  (req: Request, res: Response)=>{
     try{
         const id = req.body.id
         const name = req.body.name
         const price = req.body.price
-        const category = req.body.category as CATEGORY
+        const description = req.body.description 
+        const imageUrl = req.body.imageUrl 
 
         //validar body
         if(typeof id !== "string"){
@@ -309,21 +310,32 @@ app.post("/products", (req: Request, res: Response)=>{
         if(typeof price !== "number"){
             throw new Error("'price' deve ser uma number")
         }
-        // if(typeof category !== CATEGORY){
-        //     throw new Error("'price' deve ser uma number")
-        // }
+        if(typeof description !== "string"){
+            throw new Error("'description' deve ser uma number")
+        }
+        if(typeof imageUrl !== "string"){
+            throw new Error("'imageUrl' deve ser uma number")
+        }
         
         //não deve ser possível criar mais de um produto com a mesma id
-        const resultId = products.find((product)=> product.id === id)
+        const [resultId] = await db.raw(`
+            SELECT * FROM products
+            WHERE id = "${id}"
+        `)
         if(resultId){
-            throw new Error("não deve ser possível criar mais de uma conta com a mesma id")
+            throw new Error("não deve ser possível criar mais de uma produto com a mesma id")
         }
 
-        const newProduct:TProduct = {id, name, price, category}
-        products.push(newProduct)
+        const newProduct:TProduct = {id, name, price, description, imageUrl}
+        // products.push(newProduct)
+
+        await db.raw(`
+            INSERT INTO products (id, name, price, description, image_url)
+            VALUES("${newProduct.id}", "${newProduct.name}", "${newProduct.price}", "${newProduct.description}", "${newProduct.imageUrl}")
+        `)
 
         res.status(201).send("Produto cadastrado com sucesso")
-    }catch(error:any){
+    }catch(error){
         console.log(error)
 
         if(res.statusCode === 200){
@@ -366,7 +378,7 @@ app.put("/products/:id", (req: Request, res: Response)=>{
 
         productsToEdit.name = newName || productsToEdit.name
         productsToEdit.price = newPrice || productsToEdit.price
-        productsToEdit.category = newCategory || productsToEdit.category
+        // productsToEdit.category = newCategory || productsToEdit.category
         
         res.status(200).send("produto apagado com sucesso")
 
@@ -511,7 +523,7 @@ app.post("/purchases", (req: Request, res: Response)=>{
         purchases.push(newPurchase)
 
         res.status(201).send("Carrinho cadastrado com sucesso")
-    }catch(error:any){
+    }catch(error){
         console.log(error)
 
         if(res.statusCode === 200){
