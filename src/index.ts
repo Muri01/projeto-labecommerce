@@ -2,6 +2,7 @@ import { products, purchases, users } from "./database"
 import express, {Request, Response} from 'express';
 import cors from 'cors'
 import { CATEGORY, TProduct, TPurchase, TUser } from "./types";
+import { db } from "./database/knex";
 
 const app = express();
 
@@ -14,17 +15,40 @@ app.listen(3003, () => {
 
 // ======================= Users =======================
 // Get All Users
-app.get("/users", (req: Request, res: Response)=>{
-    try {  
-        res.status(200).send(users)
-    } catch(error: any) {
-        console.log(error) // print do erro no terminal para facilitar o debug
-		res.status(400).send(error.message)
+// app.get("/users", (req: Request, res: Response)=>{
+//     try {  
+//         res.status(200).send(users)
+//     } catch(error: any) {
+//         console.log(error) // print do erro no terminal para facilitar o debug
+// 		res.status(400).send(error.message)
+//     }
+// })
+
+app.get("/users", async (req: Request, res: Response) => {
+    try {
+        // lembre-se do uso do await para executar a query (promessa)
+        const result = await db.raw(`
+	        SELECT * FROM users;
+        `)
+
+        res.status(200).send(result)
+    } catch (error: any) {
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
 // Get Users by id
-app.get("/users/:id", (req: Request, res: Response)=>{
+app.get("/users/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
 
@@ -37,12 +61,21 @@ app.get("/users/:id", (req: Request, res: Response)=>{
 
     } catch(error: any) {
         console.log(error)
-        res.status(400).send(error.message)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
 // Create User
-app.post("/users", (req: Request, res: Response)=>{
+app.post("/users", async (req: Request, res: Response)=>{
     try{
         
         const id = req.body.id
@@ -68,25 +101,45 @@ app.post("/users", (req: Request, res: Response)=>{
 		}
         
         //não deve ser possível criar mais de uma conta com a mesma id
-        const resultId = users.find((user)=> user.id === id)
+        const [resultId] = await db.raw(`
+            SELECT * FROM users
+            WHERE id = "${id}"
+        `)
         if(resultId){
             throw new Error("não deve ser possível criar mais de uma conta com a mesma id")
         }
 
         //não deve ser possível criar mais de uma conta com o mesmo e-mail
-        const resultEmail = users.find((user)=> user.email === email)
+        const [resultEmail] = await db.raw(`
+            SELECT * FROM users
+            WHERE email = "${email}"
+        `)
         if(resultEmail){
             throw new Error("não deve ser possível criar mais de uma conta com o mesmo e-mail")
         }
 
-        const newUser:TUser = {id, email, password}
-        users.push(newUser)
+        const newUser:TUser = {id, name, email, password}
+        // users.push(newUser)
+
+        await db.raw(`
+            INSERT INTO users (id, name, email, password)
+            VALUES ("${newUser.id}","${newUser.name}","${newUser.email}","${newUser.password}")
+        `)
 
         res.status(201).send("Cadastro realizado com sucesso")
 
     } catch(error: any) {
-        console.log(error) 
-        res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -104,8 +157,17 @@ app.delete("/users/:id", (req: Request, res: Response)=>{
             throw new Error("Usuário não encontrado")
         }
     } catch(error: any) {
-        console.log(error) 
-        res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -135,25 +197,43 @@ app.put("/users/:id", (req: Request, res: Response)=>{
         res.status(200).send("User atualizado com sucesso")
 
     }catch(error: any) {
-        console.log(error) 
-        res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
 // ======================= Products =======================
 
 // Get All Products
-app.get("/products", (req: Request, res: Response)=>{
+app.get("/products", async(req: Request, res: Response)=>{
     try{
-        res.status(200).send(products)
+        res.status(200).send(await db.raw(`SELECT * FROM products`))
     } catch(error: any) {
-        console.log(error) // print do erro no terminal para facilitar o debug
-        res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
 // Search Product by name
-app.get("/products/search", (req: Request, res: Response)=>{
+app.get("/products/search", async (req: Request, res: Response)=>{
     try {
         const q = req.query.q
 
@@ -161,14 +241,25 @@ app.get("/products/search", (req: Request, res: Response)=>{
             throw new Error("'q' deve ser uma string")
         }
 
-        const result = products.filter((product)=>{
-            return product.name === q
-        })
+        const result = await db.raw(`
+            SELECT * FROM products
+            WHERE name = "${q}"
+        `)
+        
         res.status(200).send(result)
 
     }catch(error: any){
-        console.log(error) // print do erro no terminal para facilitar o debug
-		res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 
 })
@@ -186,8 +277,17 @@ app.get("/products/:id", (req: Request, res: Response)=>{
         res.status(200).send(result)
 
     }catch(error: any){
-        console.log(error) // print do erro no terminal para facilitar o debug
-		res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -224,8 +324,17 @@ app.post("/products", (req: Request, res: Response)=>{
 
         res.status(201).send("Produto cadastrado com sucesso")
     }catch(error:any){
-        console.log(error) // print do erro no terminal para facilitar o debug
-		res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -262,8 +371,17 @@ app.put("/products/:id", (req: Request, res: Response)=>{
         res.status(200).send("produto apagado com sucesso")
 
     }  catch(error: any) {
-        console.log(error) 
-        res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -280,8 +398,17 @@ app.delete("/products/:id", (req: Request, res: Response)=>{
             throw new Error("Produto não encontrado")
         }
     }  catch(error: any) {
-        console.log(error) 
-        res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -293,12 +420,22 @@ app.get("/purchases", (req: Request, res: Response)=>{
         res.status(200).send(purchases)
     }catch(error: any){
         console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }console.log(error)
 		res.status(400).send(error.message)
     }
 })
 
 // Get User Purchases by User id
-app.get("/users/:id/purchases", (req: Request, res: Response)=>{
+app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
@@ -315,7 +452,16 @@ app.get("/users/:id/purchases", (req: Request, res: Response)=>{
         res.status(200).send(result)
     }catch(error: any){
         console.log(error)
-		res.status(400).send(error.message)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
@@ -366,8 +512,17 @@ app.post("/purchases", (req: Request, res: Response)=>{
 
         res.status(201).send("Carrinho cadastrado com sucesso")
     }catch(error:any){
-        console.log(error) // print do erro no terminal para facilitar o debug
-		res.status(400).send(error.message)
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
     }
 })
 
