@@ -15,15 +15,6 @@ app.listen(3003, () => {
 
 // ======================= Users =======================
 // Get All Users
-// app.get("/users", (req: Request, res: Response)=>{
-//     try {  
-//         res.status(200).send(users)
-//     } catch(error: any) {
-//         console.log(error) // print do erro no terminal para facilitar o debug
-// 		res.status(400).send(error.message)
-//     }
-// })
-
 app.get("/users", async (req: Request, res: Response) => {
     try {
         // lembre-se do uso do await para executar a query (promessa)
@@ -32,7 +23,7 @@ app.get("/users", async (req: Request, res: Response) => {
         `)
 
         res.status(200).send(result)
-    } catch (error: any) {
+    } catch (error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -59,7 +50,7 @@ app.get("/users/:id", async (req: Request, res: Response)=>{
 
         res.status(200).send(result)
 
-    } catch(error: any) {
+    } catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -128,7 +119,7 @@ app.post("/users", async (req: Request, res: Response)=>{
 
         res.status(201).send("Cadastro realizado com sucesso")
 
-    } catch(error: any) {
+    } catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -156,7 +147,7 @@ app.delete("/users/:id", (req: Request, res: Response)=>{
         } else {
             throw new Error("Usuário não encontrado")
         }
-    } catch(error: any) {
+    } catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -196,7 +187,7 @@ app.put("/users/:id", (req: Request, res: Response)=>{
         
         res.status(200).send("User atualizado com sucesso")
 
-    }catch(error: any) {
+    }catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -217,7 +208,7 @@ app.put("/users/:id", (req: Request, res: Response)=>{
 app.get("/products", async(req: Request, res: Response)=>{
     try{
         res.status(200).send(await db.raw(`SELECT * FROM products`))
-    } catch(error: any) {
+    } catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -248,7 +239,7 @@ app.get("/products/search", async (req: Request, res: Response)=>{
         
         res.status(200).send(result)
 
-    }catch(error: any){
+    }catch(error){
         console.log(error)
 
         if(res.statusCode === 200){
@@ -265,18 +256,22 @@ app.get("/products/search", async (req: Request, res: Response)=>{
 })
 
 // Get products by id
-app.get("/products/:id", (req: Request, res: Response)=>{
+app.get("/products/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
-        const result = products.find((product)=> product.id === id)
+        const [result] = await db.raw(`
+            SELECT * FROM products
+            WHERE id = "${id}"
+        `)
+
         if(!result){
             throw new Error("Produto não existe")
         }
         
         res.status(200).send(result)
 
-    }catch(error: any){
+    }catch(error){
         console.log(error)
 
         if(res.statusCode === 200){
@@ -382,7 +377,7 @@ app.put("/products/:id", (req: Request, res: Response)=>{
         
         res.status(200).send("produto apagado com sucesso")
 
-    }  catch(error: any) {
+    }  catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -409,7 +404,7 @@ app.delete("/products/:id", (req: Request, res: Response)=>{
         } else {
             throw new Error("Produto não encontrado")
         }
-    }  catch(error: any) {
+    }  catch(error) {
         console.log(error)
 
         if(res.statusCode === 200){
@@ -431,7 +426,7 @@ app.get("/purchases", async(req: Request, res: Response)=>{
     try{
         const purchases = await db.raw(`SELECT * FROM purchases`)
         res.status(200).send(purchases)
-    }catch(error: any){
+    }catch(error){
         console.log(error)
 
         if(res.statusCode === 200){
@@ -443,7 +438,6 @@ app.get("/purchases", async(req: Request, res: Response)=>{
         } else{
             res.send("Erro inesperado")
         }console.log(error)
-		res.status(400).send(error.message)
     }
 })
 
@@ -452,18 +446,24 @@ app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
-        const resultUser = users.find((user)=>user.id === id)
-        if(resultUser){
+        const [resultUser] = await db.raw(`
+            SELECT * FROM users 
+            WHERE id = "${id}"
+        `)
+        if(!resultUser){
             throw new Error("Usuario não existe")
         }
 
-        const result = purchases.find((purchase)=> purchase.buyerId === id)
+        const result =await db.raw(`
+            SELECT * FROM purchases 
+            WHERE buyer_id = "${id}"
+        `)
         if(!result){
             throw new Error("Compra não existe")
         }
         
         res.status(200).send(result)
-    }catch(error: any){
+    }catch(error){
         console.log(error)
 
         if(res.statusCode === 200){
