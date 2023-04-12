@@ -40,6 +40,7 @@ DROP TABLE purchases_products;
 SELECT * FROM users;
 SELECT * FROM products;
 SELECT * FROM purchases;
+SELECT * FROM purchases_products;
 DROP TABLE users;
 DROP TABLE products;
 DROP TABLE purchases;
@@ -54,11 +55,11 @@ VALUES
 
 INSERT INTO products 
 VALUES
-    ("p001", "Arroz", 5.90, "Grão"),
-    ("p002", "macarrão", 10.50, "massa"),
-    ("p003", "feijão", 6.20, "Grão"),
-    ("p004", "suco", 9.64, "bebidas"),
-    ("p005", "maça", 2.12, "frutas");
+    ("p001", "Arroz", 5.90, "Grão", "picsum.com/200"),
+    ("p002", "macarrão", 10.50, "massa", "picsum.com/200"),
+    ("p003", "feijão", 6.20, "Grão", "picsum.com/200"),
+    ("p004", "suco", 9.64, "bebidas", "picsum.com/200"),
+    ("p005", "maça", 2.12, "frutas", "picsum.com/200");
 
 
 INSERT INTO purchases (id, total_price, buyer_id)

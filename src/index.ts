@@ -18,9 +18,10 @@ app.listen(3003, () => {
 app.get("/users", async (req: Request, res: Response) => {
     try {
         // lembre-se do uso do await para executar a query (promessa)
-        const result = await db.raw(`
-	        SELECT * FROM users;
-        `)
+        // const result = await db.raw(`
+	    //     SELECT * FROM users;
+        // `)
+        const result = db("users")
 
         res.status(200).send(result)
     } catch (error) {
@@ -43,11 +44,7 @@ app.get("/users/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
 
-        const result = users.find((user)=> user.id === id)
-        if(!result){
-            throw new Error("Usuário não encontrado")
-        }
-
+        const result = db("users").where({id: id})
         res.status(200).send(result)
 
     } catch(error) {
@@ -135,18 +132,20 @@ app.post("/users", async (req: Request, res: Response)=>{
 })
 
 // Delete User by id
-app.delete("/users/:id", (req: Request, res: Response)=>{
+app.delete("/users/:id",async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
+
+        const [ users ] = await db("users").where({id: id})
         
-        const indexUserToDelete = users.findIndex((user)=> user.id === id)
-        
-        if(indexUserToDelete >= 0){
-            users.splice(indexUserToDelete, 1)
-            res.status(200).send("User apagado com sucesso")
-        } else {
+        if(users) {
+            res.status(404)
             throw new Error("Usuário não encontrado")
         }
+         
+        await db("users").del().where({id: id})
+
+        res.status(200).send("User apagado com sucesso")
     } catch(error) {
         console.log(error)
 
@@ -207,7 +206,7 @@ app.put("/users/:id", (req: Request, res: Response)=>{
 // Get All Products
 app.get("/products", async(req: Request, res: Response)=>{
     try{
-        res.status(200).send(await db.raw(`SELECT * FROM products`))
+        res.status(200).send(db("products"))
     } catch(error) {
         console.log(error)
 
@@ -421,7 +420,7 @@ app.delete("/products/:id", (req: Request, res: Response)=>{
 
 // ======================= Purchases =======================
 
-//Get All Purchases
+//Get All Purchases 
 app.get("/purchases", async(req: Request, res: Response)=>{
     try{
         const purchases = await db.raw(`SELECT * FROM purchases`)
@@ -463,6 +462,80 @@ app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
         }
         
         res.status(200).send(result)
+    }catch(error){
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
+    }
+})
+
+// Get Purchase by id
+app.get("/purchases/:id", async (req: Request, res: Response)=>{
+    try{
+        const id = req.params.id
+
+        const [result] = await db("purchases").where({id: id})
+        if(!result){
+            throw new Error("Compra não existe")
+        }
+
+        //MODELAR 2 BUSCAR SEPARADAS
+        // const [buyer_id] = await db("users").where({id: result.buyer_id})
+
+        // const output = {
+        //     purchaseId: result.id,
+        //     totalPrice: result.total_price,
+        //     createdAt: result.created_at,
+        //     isPaid: result.paid,
+        //     buyerId: result.buyer_id,
+        //     email: buyer_id.email,
+        //     name: buyer_id.name
+        //   }
+
+        // GERAR RESULTADO COM 1 BUSCA
+        const [output] = await db
+            .select(
+                "purchases.id as purchaseId",
+                "purchases.total_price as totalPrice",
+                "purchases.created_at as createdAt",
+                "purchases.paid as isPaid",
+                "users.email as email",
+                "users.name as name"
+            )
+            .from("purchases")
+            .innerJoin("users", "purchases.buyer_id", "=", "users.id")
+            .where({"purchases.id": id})
+
+        //EXERICIO 3
+
+        // DICA
+        // uma para o que você já fez no exercício anterior;
+        // outra logo em seguida para buscar a lista das ids e quantidades dos produtos registrados na compra;
+        const purchases_products = await db("purchases_products").where({purchases_id: id})
+        
+        
+        // e a última para buscar os dados específicos de cada produto baseado na sua id.
+        const productList = await db("purchases_products")
+        .select(
+            "purchases_id as id",
+            "products.name as name",
+            "products.price as price",
+            "products.description as description",
+            "products.image_url as imageUrl",
+            "purchases_products.quantify as quantify",
+        )
+        .innerJoin("products", "purchases_products.product_id", "=", "products.id")
+        .where({purchases_id: id})
+        
+        res.status(200).send({...output, productList})
     }catch(error){
         console.log(error)
 
@@ -535,6 +608,37 @@ app.post("/purchases", async (req: Request, res: Response)=>{
         }
     }
 })
+
+
+
+/*
+
+const  purchaseId  = req.params.id
+
+    const products = await db("purchases_products")
+      .select(
+          [
+            "products.id as id", 
+        "products.name", 
+          "products.price", 
+          "products.description", 
+          "products.image_url as ImageUrl", 
+          "purchases_products.quantity"
+        ])
+      .innerJoin("products", "purchases_products.product_id", "products.id")
+      .where({ "purchase_id": purchaseId });
+    
+    const purchase = await db("purchases")
+      .select("purchases.id as purchaseId", "purchases.total_price as totalPrice",
+      "purchases.created_at as createdAt", "purchases.paid as isPaid" , "users.id as buyerId", "users.email", "users.name")
+      .innerJoin("users", "purchases.buyer", "users.id")
+      .where({ "purchases.id": purchaseId });
+
+      purchase[0].isPaid === 0 ? purchase[0].isPaid = false : purchase[0].isPaid = true
+
+    res.status(200).send({...purchase[0], productsList: products});
+
+*/
 
 
   
