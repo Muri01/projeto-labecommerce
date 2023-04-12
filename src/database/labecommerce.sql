@@ -23,6 +23,14 @@ CREATE TABLE purchases(
     paid INTEGER NOT NULL DEFAULT(0),
     FOREIGN KEY (buyer_id) REFERENCES users(id)
 );
+CREATE TABLE purchases_products(
+    id TEXT PRIMARY KEY UNIQUE NOT NULL,
+    buyer_id TEXT NOT NULL,
+    total_price REAL NOT NULL,
+    created_at TEXT DEFAULT(DATETIME('now', 'localtime')),
+    paid INTEGER NOT NULL DEFAULT(0),
+    FOREIGN KEY (buyer_id) REFERENCES users(id)
+);
 
 SELECT * FROM users;
 SELECT * FROM products;

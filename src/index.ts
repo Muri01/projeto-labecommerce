@@ -421,7 +421,7 @@ app.delete("/products/:id", (req: Request, res: Response)=>{
 
 // ======================= Purchases =======================
 
-//Get All Purchases
+//Get All Purchases 
 app.get("/purchases", async(req: Request, res: Response)=>{
     try{
         const purchases = await db.raw(`SELECT * FROM purchases`)
@@ -463,6 +463,58 @@ app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
         }
         
         res.status(200).send(result)
+    }catch(error){
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
+    }
+})
+
+// Get Purchase by id
+app.get("/purchases/:id", async (req: Request, res: Response)=>{
+    try{
+        const id = req.params.id
+
+        const [result] = await db("purchases").where({id: id})
+        if(!result){
+            throw new Error("Compra não existe")
+        }
+
+        // const [buyer_id] = await db("users").where({id: result.buyer_id})
+
+        // const output = {
+        //     purchaseId: result.id,
+        //     totalPrice: result.total_price,
+        //     createdAt: result.created_at,
+        //     isPaid: result.paid,
+        //     buyerId: result.buyer_id,
+        //     email: buyer_id.email,
+        //     name: buyer_id.name
+        //   }
+
+        const output = await db
+            .select(
+                "purchases.id as purchaseId",
+                "purchases.total_price as totalPrice",
+                "purchases.created_at as createdAt",
+                "purchases.paid as isPaid",
+                "users.email as email",
+                "users.name as name"
+            )
+            .from("purchases")
+            .innerJoin("users", "purchases.buyer_id", "=", "users.id")
+            .innerJoin("products", "purchases.")
+            .where({"purchases.id": id})
+        
+        res.status(200).send(output)
     }catch(error){
         console.log(error)
 
@@ -535,6 +587,35 @@ app.post("/purchases", async (req: Request, res: Response)=>{
         }
     }
 })
+
+
+
+const  purchaseId  = req.params.id
+
+    const products = await db("purchases_products")
+      .select(
+          [
+            "products.id as id", 
+        "products.name", 
+          "products.price", 
+          "products.description", 
+          "products.image_url as ImageUrl", 
+          "purchases_products.quantity"
+        ])
+      .innerJoin("products", "purchases_products.product_id", "products.id")
+      .where({ "purchase_id": purchaseId });
+    
+    const purchase = await db("purchases")
+      .select("purchases.id as purchaseId", "purchases.total_price as totalPrice",
+      "purchases.created_at as createdAt", "purchases.paid as isPaid" , "users.id as buyerId", "users.email", "users.name")
+      .innerJoin("users", "purchases.buyer", "users.id")
+      .where({ "purchases.id": purchaseId });
+
+      purchase[0].isPaid === 0 ? purchase[0].isPaid = false : purchase[0].isPaid = true
+
+    res.status(200).send({...purchase[0], productsList: products});
+
+
 
 
   
