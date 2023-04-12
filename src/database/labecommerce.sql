@@ -23,14 +23,6 @@ CREATE TABLE purchases(
     paid INTEGER NOT NULL DEFAULT(0),
     FOREIGN KEY (buyer_id) REFERENCES users(id)
 );
-CREATE TABLE purchases_products(
-    id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    buyer_id TEXT NOT NULL,
-    total_price REAL NOT NULL,
-    created_at TEXT DEFAULT(DATETIME('now', 'localtime')),
-    paid INTEGER NOT NULL DEFAULT(0),
-    FOREIGN KEY (buyer_id) REFERENCES users(id)
-);
 
 
 -- EXERCICIO 1
@@ -63,11 +55,11 @@ VALUES
 
 INSERT INTO products 
 VALUES
-    ("p001", "Arroz", 5.90, "Grão"),
-    ("p002", "macarrão", 10.50, "massa"),
-    ("p003", "feijão", 6.20, "Grão"),
-    ("p004", "suco", 9.64, "bebidas"),
-    ("p005", "maça", 2.12, "frutas");
+    ("p001", "Arroz", 5.90, "Grão", "picsum.com/200"),
+    ("p002", "macarrão", 10.50, "massa", "picsum.com/200"),
+    ("p003", "feijão", 6.20, "Grão", "picsum.com/200"),
+    ("p004", "suco", 9.64, "bebidas", "picsum.com/200"),
+    ("p005", "maça", 2.12, "frutas", "picsum.com/200");
 
 
 INSERT INTO purchases (id, total_price, buyer_id)

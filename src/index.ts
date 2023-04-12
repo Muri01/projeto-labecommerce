@@ -501,7 +501,7 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
         //   }
 
         // GERAR RESULTADO COM 1 BUSCA
-        const output = await db
+        const [output] = await db
             .select(
                 "purchases.id as purchaseId",
                 "purchases.total_price as totalPrice",
@@ -515,9 +515,27 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
             .where({"purchases.id": id})
 
         //EXERICIO 3
-        const productList = await db("purchases_products").where({id: id})
+
+        // DICA
+        // uma para o que você já fez no exercício anterior;
+        // outra logo em seguida para buscar a lista das ids e quantidades dos produtos registrados na compra;
+        const purchases_products = await db("purchases_products").where({purchases_id: id})
         
-        res.status(200).send(output)
+        
+        // e a última para buscar os dados específicos de cada produto baseado na sua id.
+        const productList = await db("purchases_products")
+        .select(
+            "purchases_id as id",
+            "products.name as name",
+            "products.price as price",
+            "products.description as description",
+            "products.image_url as imageUrl",
+            "purchases_products.quantify as quantify",
+        )
+        .innerJoin("products", "purchases_products.product_id", "=", "products.id")
+        .where({purchases_id: id})
+        
+        res.status(200).send({...output, productList})
     }catch(error){
         console.log(error)
 
