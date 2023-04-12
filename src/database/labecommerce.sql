@@ -1,25 +1,29 @@
 -- Active: 1680630892141@@127.0.0.1@3306
 CREATE TABLE users(
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
+    name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    created_at TEXT DEFAULT(DATETIME('now', 'localtime'))
 );
 
 CREATE TABLE products(
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     name TEXT NOT NULL,
     price REAL NOT NULL,
-    category TEXT NOT NULL
+    description TEXT,
+    image_url TEXT
 );
 
 CREATE TABLE purchases(
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    total_price REAL NOT NULL,
-    paid INTEGER NOT NULL DEFAULT(0),
-    delivered_at TEXT DEFAULT(DATETIME()),
     buyer_id TEXT NOT NULL,
+    total_price REAL NOT NULL,
+    created_at TEXT DEFAULT(DATETIME('now', 'localtime')),
+    paid INTEGER NOT NULL DEFAULT(0),
     FOREIGN KEY (buyer_id) REFERENCES users(id)
 );
+
 
 -- EXERCICIO 1
 CREATE TABLE purchases_products(
@@ -33,10 +37,20 @@ CREATE TABLE purchases_products(
 SELECT * FROM purchases_products;
 DROP TABLE purchases_products;
 
-INSERT INTO users 
+SELECT * FROM users;
+SELECT * FROM products;
+SELECT * FROM purchases;
+DROP TABLE users;
+DROP TABLE products;
+DROP TABLE purchases;
+
+
+DROP TABLE purchases_products;
+
+INSERT INTO users(id, name, email, password)
 VALUES
-    ("u001", "user1@email.com", "123456"),
-    ("u002", "user2@email.com", "abcdef");
+    ("u001", "user1", "user1@email.com", "123456"),
+    ("u002", "user2", "user2@email.com", "abcdef");
 
 INSERT INTO products 
 VALUES
