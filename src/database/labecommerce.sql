@@ -35,6 +35,7 @@ CREATE TABLE purchases_products(
 SELECT * FROM users;
 SELECT * FROM products;
 SELECT * FROM purchases;
+SELECT * FROM purchases_products;
 DROP TABLE users;
 DROP TABLE products;
 DROP TABLE purchases;

@@ -513,6 +513,9 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
             .from("purchases")
             .innerJoin("users", "purchases.buyer_id", "=", "users.id")
             .where({"purchases.id": id})
+
+        //EXERICIO 3
+        const productList = await db("purchases_products").where({id: id})
         
         res.status(200).send(output)
     }catch(error){
@@ -587,6 +590,8 @@ app.post("/purchases", async (req: Request, res: Response)=>{
         }
     }
 })
+
+
 
 /*
 
