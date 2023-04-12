@@ -18,9 +18,10 @@ app.listen(3003, () => {
 app.get("/users", async (req: Request, res: Response) => {
     try {
         // lembre-se do uso do await para executar a query (promessa)
-        const result = await db.raw(`
-	        SELECT * FROM users;
-        `)
+        // const result = await db.raw(`
+	    //     SELECT * FROM users;
+        // `)
+        const result = db("users")
 
         res.status(200).send(result)
     } catch (error) {
@@ -43,11 +44,7 @@ app.get("/users/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
 
-        const result = users.find((user)=> user.id === id)
-        if(!result){
-            throw new Error("Usuário não encontrado")
-        }
-
+        const result = db("users").where({id: id})
         res.status(200).send(result)
 
     } catch(error) {
@@ -135,18 +132,20 @@ app.post("/users", async (req: Request, res: Response)=>{
 })
 
 // Delete User by id
-app.delete("/users/:id", (req: Request, res: Response)=>{
+app.delete("/users/:id",async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
+
+        const [ users ] = await db("users").where({id: id})
         
-        const indexUserToDelete = users.findIndex((user)=> user.id === id)
-        
-        if(indexUserToDelete >= 0){
-            users.splice(indexUserToDelete, 1)
-            res.status(200).send("User apagado com sucesso")
-        } else {
+        if(users) {
+            res.status(404)
             throw new Error("Usuário não encontrado")
         }
+         
+        await db("users").del().where({id: id})
+
+        res.status(200).send("User apagado com sucesso")
     } catch(error) {
         console.log(error)
 
@@ -207,7 +206,7 @@ app.put("/users/:id", (req: Request, res: Response)=>{
 // Get All Products
 app.get("/products", async(req: Request, res: Response)=>{
     try{
-        res.status(200).send(await db.raw(`SELECT * FROM products`))
+        res.status(200).send(db("products"))
     } catch(error) {
         console.log(error)
 
@@ -488,6 +487,7 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
             throw new Error("Compra não existe")
         }
 
+        //MODELAR 2 BUSCAR SEPARADAS
         // const [buyer_id] = await db("users").where({id: result.buyer_id})
 
         // const output = {
@@ -500,6 +500,7 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
         //     name: buyer_id.name
         //   }
 
+        // GERAR RESULTADO COM 1 BUSCA
         const output = await db
             .select(
                 "purchases.id as purchaseId",
@@ -511,7 +512,6 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
             )
             .from("purchases")
             .innerJoin("users", "purchases.buyer_id", "=", "users.id")
-            .innerJoin("products", "purchases.")
             .where({"purchases.id": id})
         
         res.status(200).send(output)
@@ -588,7 +588,7 @@ app.post("/purchases", async (req: Request, res: Response)=>{
     }
 })
 
-
+/*
 
 const  purchaseId  = req.params.id
 
@@ -615,7 +615,7 @@ const  purchaseId  = req.params.id
 
     res.status(200).send({...purchase[0], productsList: products});
 
-
+*/
 
 
   
