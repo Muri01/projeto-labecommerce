@@ -24,12 +24,26 @@ CREATE TABLE purchases(
     FOREIGN KEY (buyer_id) REFERENCES users(id)
 );
 
+
+-- EXERCICIO 1
+CREATE TABLE purchases_products(
+    purchases_id TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    quantify INTEGER NOT NULL,
+    FOREIGN KEY (purchases_id) REFERENCES purchases(id)
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+SELECT * FROM purchases_products;
+DROP TABLE purchases_products;
+
 SELECT * FROM users;
 SELECT * FROM products;
 SELECT * FROM purchases;
 DROP TABLE users;
 DROP TABLE products;
 DROP TABLE purchases;
+
 
 DROP TABLE purchases_products;
 
@@ -46,7 +60,7 @@ VALUES
     ("p004", "suco", 9.64, "bebidas"),
     ("p005", "maça", 2.12, "frutas");
 
--- EXERCICIO 2
+
 INSERT INTO purchases (id, total_price, buyer_id)
 VALUES
     ("c001", 5.90, "u001"),
@@ -54,18 +68,26 @@ VALUES
     ("c003", 6.20, "u001"),
     ("c004", 9.64, "u001");
 
-UPDATE purchases 
-SET delivered_at = DATETIME()
-WHERE id = "c002";
 
--- EXERCICIO 3
+-- EXERCICIO 2
+INSERT INTO purchases_products
+VALUES
+    ("c001", "p001", 5),
+    ("c002", "p002", 10),
+    ("c003", "p005", 6),
+    ("c004", "p003", 9);
 
-SELECT id, buyer_id, email FROM purchases 
+SELECT * FROM products;
+
+SELECT * FROM purchases_products
+INNER JOIN products
+ON purchases_products.product_id = products.id;
+
+
+SELECT * FROM purchases 
 INNER JOIN users 
 ON purchases.buyer_id = users.id;
 
-
--- EXERCICIO 1 --
 
 -- Get all Users
 SELECT * FROM users;
@@ -85,7 +107,6 @@ INSERT INTO products
 VALUES ("u006", "Pão", 12.50, "Café");
 
 
---- EXERCICIO 2
 -- Get Products by id
 SELECT * FROM products 
 WHERE id = "p002";
@@ -103,6 +124,11 @@ UPDATE users
 SET password = "bananinha123"
 WHERE id = "p002";
 
+-- Edit Purchases by id
+UPDATE purchases 
+SET delivered_at = DATETIME()
+WHERE id = "c002";
+
 -- Edit Product by id
 UPDATE products
 SET price = 100.55, category = "teste"
@@ -110,8 +136,6 @@ WHERE id = "p001";
 
 SELECT * FROM users;
 SELECT * FROM products;
-
--- Exercício 3
 
 -- Get All Users
 -- retorna o resultado ordenado pela coluna email em ordem crescente
