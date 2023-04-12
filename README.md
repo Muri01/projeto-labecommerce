@@ -16,6 +16,9 @@ Ele tem uma particularidade: seus requisitos são implementados ao longo dos exe
 ![image](https://user-images.githubusercontent.com/29845719/214396608-ddcfd097-e615-44f9-acbe-f815f9abb83f.png)
 https://dbdiagram.io/d/63c6e8e5296d97641d7a4666
 
+
+![image](https://user-images.githubusercontent.com/29845719/212985053-38570c30-1dbe-46f8-9e8a-549a957f50c6.png)
+
 # Lista de requisitos
 
 - Endpoints
