@@ -17,7 +17,7 @@ app.listen(3003, () => {
 // Get All Users
 app.get("/users", async (req: Request, res: Response) => {
     try {
-        const result = db("users")
+        const result = await db("users")
 
         res.status(200).send(result)
     } catch (error) {
@@ -40,7 +40,7 @@ app.get("/users/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
 
-        const result = db("users").where({id: id})
+        const result = await db("users").where({id: id})
         res.status(200).send(result)
 
     } catch(error) {
@@ -61,13 +61,12 @@ app.get("/users/:id", async (req: Request, res: Response)=>{
 // Create User
 app.post("/users", async (req: Request, res: Response)=>{
     try{
-        
         const id = req.body.id
         const name = req.body.name
         const email = req.body.email
         const password = req.body.password
 
-        // validar o body
+        // validar dados vindos do body
         if(typeof id !== "string"){
             throw new Error("'id' deve ser uma string")
         }
@@ -85,30 +84,20 @@ app.post("/users", async (req: Request, res: Response)=>{
 		}
         
         //não deve ser possível criar mais de uma conta com a mesma id
-        const [resultId] = await db.raw(`
-            SELECT * FROM users
-            WHERE id = "${id}"
-        `)
+        const [resultId] = await db(`users`).where({id})
         if(resultId){
             throw new Error("não deve ser possível criar mais de uma conta com a mesma id")
         }
 
         //não deve ser possível criar mais de uma conta com o mesmo e-mail
-        const [resultEmail] = await db.raw(`
-            SELECT * FROM users
-            WHERE email = "${email}"
-        `)
+        const [resultEmail] = await db("users").where("email", email)
         if(resultEmail){
             throw new Error("não deve ser possível criar mais de uma conta com o mesmo e-mail")
         }
 
         const newUser:TUser = {id, name, email, password}
-        // users.push(newUser)
 
-        await db.raw(`
-            INSERT INTO users (id, name, email, password)
-            VALUES ("${newUser.id}","${newUser.name}","${newUser.email}","${newUser.password}")
-        `)
+        await db("users").insert(newUser)
 
         res.status(201).send("Cadastro realizado com sucesso")
 
@@ -158,22 +147,29 @@ app.delete("/users/:id",async (req: Request, res: Response)=>{
 })
 
 // Edit User by id
-app.put("/users/:id", (req: Request, res: Response)=>{
+app.put("/users/:id", async(req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
-        const newEmail = req.body.email as string | undefined
-        const newPassword = req.body.password as string | undefined
+        const newEmail = req.body.email 
+        const newPassword = req.body.password
 
-        if(typeof newEmail !== "string" && typeof newEmail !== "undefined") {
-            throw new Error("novo email deve ser uma string")
+        if(newEmail){
+            if(typeof newEmail !== "string") {
+                res.status(400)
+                throw new Error("novo e-mail deve ser uma string")
+            }
         }
-        if(typeof newPassword !== "string" && typeof newPassword !== "undefined") {
-            throw new Error("nova senha deve ser uma string")
+        if(newEmail){
+            if(typeof newPassword !== "string") {
+                res.status(400)
+                throw new Error("nova senha deve ser uma string")
+            }
         }
         
-        const usersToEdit = users.find((user)=> user.id === id)
+        const [usersToEdit] = await db("users").where({id})
         if(!usersToEdit){
+            res.status(404)
             throw new Error("Usuário não encontrado")
         }
 
