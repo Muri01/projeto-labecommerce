@@ -423,7 +423,7 @@ app.delete("/products/:id", (req: Request, res: Response)=>{
 //Get All Purchases 
 app.get("/purchases", async(req: Request, res: Response)=>{
     try{
-        const purchases = await db.raw(`SELECT * FROM purchases`)
+        const purchases = await db("purchases")
         res.status(200).send(purchases)
     }catch(error){
         console.log(error)
@@ -445,18 +445,12 @@ app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
-        const [resultUser] = await db.raw(`
-            SELECT * FROM users 
-            WHERE id = "${id}"
-        `)
+        const [resultUser] = await db("users").where({id: id})
         if(!resultUser){
-            throw new Error("Usuario não existe")
+            throw new Error("Usuário não existe")
         }
 
-        const result =await db.raw(`
-            SELECT * FROM purchases 
-            WHERE buyer_id = "${id}"
-        `)
+        const result = await db("users").where({id: id})
         if(!result){
             throw new Error("Compra não existe")
         }
@@ -487,20 +481,6 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
             throw new Error("Compra não existe")
         }
 
-        //MODELAR 2 BUSCAR SEPARADAS
-        // const [buyer_id] = await db("users").where({id: result.buyer_id})
-
-        // const output = {
-        //     purchaseId: result.id,
-        //     totalPrice: result.total_price,
-        //     createdAt: result.created_at,
-        //     isPaid: result.paid,
-        //     buyerId: result.buyer_id,
-        //     email: buyer_id.email,
-        //     name: buyer_id.name
-        //   }
-
-        // GERAR RESULTADO COM 1 BUSCA
         const [output] = await db
             .select(
                 "purchases.id as purchaseId",
@@ -514,15 +494,6 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
             .innerJoin("users", "purchases.buyer_id", "=", "users.id")
             .where({"purchases.id": id})
 
-        //EXERICIO 3
-
-        // DICA
-        // uma para o que você já fez no exercício anterior;
-        // outra logo em seguida para buscar a lista das ids e quantidades dos produtos registrados na compra;
-        const purchases_products = await db("purchases_products").where({purchases_id: id})
-        
-        
-        // e a última para buscar os dados específicos de cada produto baseado na sua id.
         const productList = await db("purchases_products")
         .select(
             "purchases_id as id",
@@ -534,6 +505,8 @@ app.get("/purchases/:id", async (req: Request, res: Response)=>{
         )
         .innerJoin("products", "purchases_products.product_id", "=", "products.id")
         .where({purchases_id: id})
+
+        output.isPaid === 0 ? output.isPaid = false : output.isPaid = true
         
         res.status(200).send({...output, productList})
     }catch(error){
@@ -581,7 +554,14 @@ app.post("/purchases", async (req: Request, res: Response)=>{
             throw new Error("id do usuário que fez a compra deve existir no array de usuários cadastrados")
         }
         
+        // //atualizar com valor correto
+        // let totalPriceResult
+        // for(let product of productList){
+        //     totalPriceResult = totalPriceResult + (product.price * product.quantify)
+        // }
+        // output.totalPrice = totalPriceResult
 
+        
         const newPurchase:TPurchase = {id, buyerId, totalPrice, paid}
         await db.raw(`
             INSERT INTO purchases (id, buyer_id, total_price, paid)
@@ -592,6 +572,7 @@ app.post("/purchases", async (req: Request, res: Response)=>{
                     "${newPurchase.paid}"
             )
         `)
+        
 
         res.status(201).send("Compra cadastrada com sucesso")
     }catch(error){
@@ -608,37 +589,4 @@ app.post("/purchases", async (req: Request, res: Response)=>{
         }
     }
 })
-
-
-
-/*
-
-const  purchaseId  = req.params.id
-
-    const products = await db("purchases_products")
-      .select(
-          [
-            "products.id as id", 
-        "products.name", 
-          "products.price", 
-          "products.description", 
-          "products.image_url as ImageUrl", 
-          "purchases_products.quantity"
-        ])
-      .innerJoin("products", "purchases_products.product_id", "products.id")
-      .where({ "purchase_id": purchaseId });
-    
-    const purchase = await db("purchases")
-      .select("purchases.id as purchaseId", "purchases.total_price as totalPrice",
-      "purchases.created_at as createdAt", "purchases.paid as isPaid" , "users.id as buyerId", "users.email", "users.name")
-      .innerJoin("users", "purchases.buyer", "users.id")
-      .where({ "purchases.id": purchaseId });
-
-      purchase[0].isPaid === 0 ? purchase[0].isPaid = false : purchase[0].isPaid = true
-
-    res.status(200).send({...purchase[0], productsList: products});
-
-*/
-
-
   
