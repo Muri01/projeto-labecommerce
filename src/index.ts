@@ -17,10 +17,6 @@ app.listen(3003, () => {
 // Get All Users
 app.get("/users", async (req: Request, res: Response) => {
     try {
-        // lembre-se do uso do await para executar a query (promessa)
-        // const result = await db.raw(`
-	    //     SELECT * FROM users;
-        // `)
         const result = db("users")
 
         res.status(200).send(result)
