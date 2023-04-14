@@ -17,7 +17,13 @@ app.listen(3003, () => {
 // Get All Users
 app.get("/users", async (req: Request, res: Response) => {
     try {
-        const result = await db("users")
+        const result = await db.select(
+            "id",
+            "name", 
+            "email", 
+            "password", 
+            "created_at as createdAt"
+        ).from("users")
 
         res.status(200).send(result)
     } catch (error) {
@@ -35,7 +41,7 @@ app.get("/users", async (req: Request, res: Response) => {
     }
 })
 
-// Get Users by id
+// Get Users by id - X
 app.get("/users/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
@@ -99,12 +105,12 @@ app.post("/users", async (req: Request, res: Response)=>{
 
         await db("users").insert(newUser)
 
-        res.status(201).send("Cadastro realizado com sucesso")
+        res.status(201).send({message: "Cadastro realizado com sucesso"})
 
     } catch(error) {
         console.log(error)
 
-        if(res.statusCode === 1){
+        if(res.statusCode === 201){
             res.status(500)
         }
 
@@ -116,7 +122,7 @@ app.post("/users", async (req: Request, res: Response)=>{
     }
 })
 
-// Delete User by id
+// Delete User by id - X
 app.delete("/users/:id",async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
@@ -147,7 +153,7 @@ app.delete("/users/:id",async (req: Request, res: Response)=>{
 })
 
 // Edit User by id
-app.put("/users/:id", async(req: Request, res: Response)=>{
+app.put("/users/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
@@ -216,9 +222,9 @@ app.put("/users/:id", async(req: Request, res: Response)=>{
 // ======================= Products =======================
 
 // Get All Products
-app.get("/products", async(req: Request, res: Response)=>{
+app.get("/products", async (req: Request, res: Response)=>{
     try{
-        res.status(200).send(db("products"))
+        res.status(200).send(await db("products"))
     } catch(error) {
         console.log(error)
 
@@ -234,8 +240,8 @@ app.get("/products", async(req: Request, res: Response)=>{
     }
 })
 
-// Search Product by name
-app.get("/products/search", async (req: Request, res: Response)=>{
+// Search Product by name --> REVISAR!!!
+app.get("/products/", async (req: Request, res: Response)=>{
     try {
         const q = req.query.q
 
@@ -298,7 +304,7 @@ app.get("/products/:id", async (req: Request, res: Response)=>{
 })
 
 // Create Product
-app.post("/products",async  (req: Request, res: Response)=>{
+app.post("/products",async (req: Request, res: Response)=>{
     try{
         const id = req.body.id
         const name = req.body.name
@@ -332,11 +338,11 @@ app.post("/products",async  (req: Request, res: Response)=>{
             throw new Error("não deve ser possível criar mais de uma produto com a mesma id")
         }
 
-        const newProduct:TProduct = {id, name, price, description, imageUrl}
+        const newProduct = {id, name, price, description, image_url: imageUrl}
 
         await db("products").insert(newProduct)
 
-        res.status(201).send("Produto cadastrado com sucesso")
+        res.status(201).send({message: "Produto cadastrado com sucesso"})
     }catch(error){
         console.log(error)
 
@@ -388,8 +394,9 @@ app.put("/products/:id", async (req: Request, res: Response)=>{
                 res.status(400)
                 throw new Error("'string' deve ser uma string")
             }
-            if(newDescription.length > 5){
+            if(newDescription.length < 5){
                 res.status(400)
+                console.log(newDescription.length)
                 throw new Error("'Description' deve ter mais que 5 caracteres")
             }
         }
@@ -398,7 +405,7 @@ app.put("/products/:id", async (req: Request, res: Response)=>{
                 res.status(400)
                 throw new Error("'number' deve ser uma string")
             }
-            if(newImageUrl.length > 3){
+            if(newImageUrl.length < 3){
                 res.status(400)
                 throw new Error("'ImageUrl' deve ter mais que 3 caracteres")
             }
@@ -410,12 +417,12 @@ app.put("/products/:id", async (req: Request, res: Response)=>{
             throw new Error("produto não encontrado")
         }
 
-        const newProduct:TProduct = {
+        const newProduct = {
             id: productsToEdit.id,
             name: newName || productsToEdit.name,
             price: newPrice || productsToEdit.price,
             description: newDescription || productsToEdit.description,
-            imageUrl: newImageUrl || productsToEdit.image_url
+            image_url: newImageUrl || productsToEdit.image_url
         }
 
         await db("products").update(newProduct).where({id})
@@ -437,6 +444,7 @@ app.put("/products/:id", async (req: Request, res: Response)=>{
     }
 })
 
+// Delete Product by id - X
 app.delete("/products/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
@@ -467,7 +475,7 @@ app.delete("/products/:id", async (req: Request, res: Response)=>{
 
 // ======================= Purchases =======================
 
-//Get All Purchases 
+//Get All Purchases - X
 app.get("/purchases", async(req: Request, res: Response)=>{
     try{
         const purchases = await db("purchases")
@@ -487,7 +495,7 @@ app.get("/purchases", async(req: Request, res: Response)=>{
     }
 })
 
-// Get User Purchases by User id
+// Get User Purchases by User id - X
 app.get("/users/:id/purchases", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
@@ -577,7 +585,7 @@ app.post("/purchases", async (req: Request, res: Response)=>{
         const id = req.body.id
         const buyerId = req.body.buyer
         const totalPrice = req.body.totalPrice
-        const paid = req.body.paid
+        const productsList = req.body.products
 
         //validar body
         if(typeof id !== "string"){
@@ -589,39 +597,52 @@ app.post("/purchases", async (req: Request, res: Response)=>{
         if(typeof totalPrice !== "number"){
             throw new Error("'totalPrice' deve ser uma number")
         }
-        if(typeof paid !== "number"){
-            throw new Error("'paid' deve ser uma number")
+        if(productsList.length < 0){
+            throw new Error("'product' não pode ficar vazio")
         }
 
-        const [resultIdUser] = await db.raw(`
-            SELECT * FROM users
-            WHERE id = "${buyerId}"
-        `)
+        const [resultIdUser] = await db(`users`).where({id: buyerId})
         if(!resultIdUser){
-            throw new Error("id do usuário que fez a compra deve existir no array de usuários cadastrados")
+            throw new Error(" usuário não cadastrado")
         }
-        
-        // //atualizar com valor correto
-        // let totalPriceResult
-        // for(let product of productList){
-        //     totalPriceResult = totalPriceResult + (product.price * product.quantify)
-        // }
-        // output.totalPrice = totalPriceResult
 
-        
-        const newPurchase:TPurchase = {id, buyerId, totalPrice, paid}
-        await db.raw(`
-            INSERT INTO purchases (id, buyer_id, total_price, paid)
-                VALUES(
-                    "${newPurchase.id}",
-                    "${newPurchase.buyerId}",
-                    "${newPurchase.totalPrice}",
-                    "${newPurchase.paid}"
-            )
-        `)
-        
+        let totalPriceCheck: number = 0
+        //verificar os produtos que vieram na requisição existem
+        for(let product of productsList){
+            const [productExist] = await db(`users`).where({id: buyerId})
+            if(!productExist){
+                await db("purchases").del().where({id}) 
+                throw new Error("Produto não encontrado")
+            }
+            
+            // somar valor dos produtos para verificar se valor final esta correto
+            totalPriceCheck = totalPriceCheck + (product.price * product.quantity)
+        }
+        console.log(totalPriceCheck)
+        if(totalPriceCheck !== totalPrice){
+            await db("purchases").del().where({id})
+            res.status(404)
+            throw new Error("Preço total não bate com a os valores dos produtos")
+        }
 
-        res.status(201).send("Compra cadastrada com sucesso")
+        // criar comprar
+        const newPurchase = {
+            id, 
+            buyer_id: buyerId, 
+            total_price: totalPrice
+        }
+        await db("purchases").insert(newPurchase)
+
+        // inserir produto na tabela relacional de compras e produtos
+        for(let product of productsList){
+            await db("purchases_products").insert({
+                purchases_id: id,
+                product_id: product.id,
+                quantify: product.quantity
+            })
+        }
+
+        res.status(201).send({message: "Pedido realizado com sucesso"})
     }catch(error){
         console.log(error)
 
@@ -637,3 +658,31 @@ app.post("/purchases", async (req: Request, res: Response)=>{
     }
 })
   
+app.delete("/purchases/:id", async (req: Request, res: Response)=>{
+    try{
+        const id = req.params.id
+        
+        const [indexPurchaseToDelete] = await db("purchases").where({id})
+        
+        if(indexPurchaseToDelete){
+            await db("purchases_products").del().where({purchases_id: id})
+            await db("purchases").del().where({id})
+            res.status(200).send("Compra apagado com sucesso")
+        } else {
+            res.status(400)
+            throw new Error("Compra não encontrado")
+        }
+    }  catch(error) {
+        console.log(error)
+
+        if(res.statusCode === 200){
+            res.status(500)
+        }
+
+        if(error instanceof Error){
+            res.send(error.message)
+        } else{
+            res.send("Erro inesperado")
+        }
+    }
+})
