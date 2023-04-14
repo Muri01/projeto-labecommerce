@@ -104,7 +104,7 @@ app.post("/users", async (req: Request, res: Response)=>{
     } catch(error) {
         console.log(error)
 
-        if(res.statusCode === 200){
+        if(res.statusCode === 1){
             res.status(500)
         }
 
@@ -151,16 +151,30 @@ app.put("/users/:id", async(req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
+        const newId = req.body.id 
+        const newName = req.body.name 
         const newEmail = req.body.email 
         const newPassword = req.body.password
 
+        if(newId){
+            if(typeof newId !== "string") {
+                res.status(400)
+                throw new Error("novo id deve ser uma string")
+            }
+        }
+        if(newName){
+            if(typeof newName !== "string") {
+                res.status(400)
+                throw new Error("nova name deve ser uma string")
+            }
+        }
         if(newEmail){
             if(typeof newEmail !== "string") {
                 res.status(400)
                 throw new Error("novo e-mail deve ser uma string")
             }
         }
-        if(newEmail){
+        if(newPassword){
             if(typeof newPassword !== "string") {
                 res.status(400)
                 throw new Error("nova senha deve ser uma string")
@@ -173,8 +187,14 @@ app.put("/users/:id", async(req: Request, res: Response)=>{
             throw new Error("Usuário não encontrado")
         }
 
-        usersToEdit.email = newEmail || usersToEdit.email
-        usersToEdit.password = newPassword || usersToEdit.password
+        const newUser: TUser = {
+            id: newId || usersToEdit.id,
+            name: newName || usersToEdit.name,
+            email: newEmail || usersToEdit.email,
+            password: newPassword || usersToEdit.password
+        }
+
+        await db("users").update(newUser).where({id})
         
         res.status(200).send("User atualizado com sucesso")
 
@@ -313,18 +333,14 @@ app.post("/products",async  (req: Request, res: Response)=>{
         }
 
         const newProduct:TProduct = {id, name, price, description, imageUrl}
-        // products.push(newProduct)
 
-        await db.raw(`
-            INSERT INTO products (id, name, price, description, image_url)
-            VALUES("${newProduct.id}", "${newProduct.name}", "${newProduct.price}", "${newProduct.description}", "${newProduct.imageUrl}")
-        `)
+        await db("products").insert(newProduct)
 
         res.status(201).send("Produto cadastrado com sucesso")
     }catch(error){
         console.log(error)
 
-        if(res.statusCode === 200){
+        if(res.statusCode === 201){
             res.status(500)
         }
 
@@ -337,34 +353,72 @@ app.post("/products",async  (req: Request, res: Response)=>{
 })
 
 // Edit Product by id
-app.put("/products/:id", (req: Request, res: Response)=>{
+app.put("/products/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
         const newName = req.body.name
         const newPrice = req.body.price
-        const newCategory = req.body.category
+        const newDescription = req.body.description
+        const newImageUrl = req.body.imageUrl
 
         //validar body
-        if(typeof newName !== "string" && typeof newName !== "undefined"){
-            throw new Error("'password' deve ser uma string")
+        if( newName !== undefined){
+            if(typeof newName !== "string"){
+                res.status(400)
+                throw new Error("'password' deve ser uma string")
+            }
+            if(newName.length < 2){
+                res.status(400)
+                throw new Error("'name' deveter mais que 2 caracteres")
+            }
         }
-        if(typeof newPrice !== "number" && typeof newPrice !== "undefined"){
-            throw new Error("'name' deve ser uma string")
+        if(newPrice !== undefined){
+            if(typeof newPrice !== "number"){
+                res.status(400)
+                throw new Error("'number' deve ser uma string")
+            }
+            if(newPrice === 0){
+                res.status(400)
+                throw new Error("'price' não pode ser zero")
+            }
         }
-        // if(typeof newCategory !== "number"){
-        //     throw new Error("'newCategory' deve ser ..............")
-        // }
+        if(newDescription !== undefined){
+            if(typeof newDescription !== "string"){
+                res.status(400)
+                throw new Error("'string' deve ser uma string")
+            }
+            if(newDescription.length > 5){
+                res.status(400)
+                throw new Error("'Description' deve ter mais que 5 caracteres")
+            }
+        }
+        if(newImageUrl !== undefined){
+            if(typeof newImageUrl !== "string"){
+                res.status(400)
+                throw new Error("'number' deve ser uma string")
+            }
+            if(newImageUrl.length > 3){
+                res.status(400)
+                throw new Error("'ImageUrl' deve ter mais que 3 caracteres")
+            }
+        }
         
         //Validar que produto existe
-        const productsToEdit = products.find((product)=> product.id === id)
+        const [productsToEdit] = await db("products").where({ id})
         if(!productsToEdit){
             throw new Error("produto não encontrado")
         }
 
-        productsToEdit.name = newName || productsToEdit.name
-        productsToEdit.price = newPrice || productsToEdit.price
-        // productsToEdit.category = newCategory || productsToEdit.category
+        const newProduct:TProduct = {
+            id: productsToEdit.id,
+            name: newName || productsToEdit.name,
+            price: newPrice || productsToEdit.price,
+            description: newDescription || productsToEdit.description,
+            imageUrl: newImageUrl || productsToEdit.image_url
+        }
+
+        await db("products").update(newProduct).where({id})
         
         res.status(200).send("produto apagado com sucesso")
 
@@ -383,16 +437,17 @@ app.put("/products/:id", (req: Request, res: Response)=>{
     }
 })
 
-app.delete("/products/:id", (req: Request, res: Response)=>{
+app.delete("/products/:id", async (req: Request, res: Response)=>{
     try{
         const id = req.params.id
         
-        const indexProductToDelete = products.findIndex((product)=> product.id === id)
+        const [indexProductToDelete] = await db("products").where({id})
         
-        if(indexProductToDelete >= 0){
-            products.splice(indexProductToDelete, 1)
+        if(indexProductToDelete){
+            await db("products").del().where({id})
             res.status(200).send("Produto apagado com sucesso")
         } else {
+            res.status(400)
             throw new Error("Produto não encontrado")
         }
     }  catch(error) {
@@ -570,7 +625,7 @@ app.post("/purchases", async (req: Request, res: Response)=>{
     }catch(error){
         console.log(error)
 
-        if(res.statusCode === 200){
+        if(res.statusCode === 201){
             res.status(500)
         }
 
